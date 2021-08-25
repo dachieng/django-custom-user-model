@@ -1,9 +1,12 @@
+from datetime import timedelta, timezone
 from django.db import models
 from authentication.helper.models import TrackingModel
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, UserManager
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+import jwt
+from django.conf import settings
 
 
 class MyUserManager(UserManager):
@@ -102,4 +105,8 @@ class User(PermissionsMixin, AbstractBaseUser, TrackingModel):
 
     @property
     def token(self):
-        return ''
+        # username, password, time taken for token to expire (expire after 24 hours since the time it was created),
+        token = jwt.encode({'username': self.username, 'email': self.email, 'exp': timezone.utcnow(
+        ) + timedelta(hours=24)}, settings.SECRET_KEY, algorithm='HS256')
+
+        return token
