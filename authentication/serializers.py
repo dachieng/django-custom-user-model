@@ -10,6 +10,9 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['first_name', 'last_name', 'email', 'username', 'password']
 
+    def create(self, validated_data):
+        return User.objects.create_user(**validated_data)
+
 
 class LoginSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
@@ -17,6 +20,6 @@ class LoginSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['email', 'password', 'token']
+        fields = ['email', 'username', 'password']
 
-        read_only_fields = ['token']
+        #read_only_fields = ['token']

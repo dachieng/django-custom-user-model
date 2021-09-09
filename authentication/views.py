@@ -1,11 +1,22 @@
 from django.shortcuts import render
-from rest_framework import status
+from rest_framework import status, permissions
 from rest_framework.response import Response
 from authentication.serializers import LoginSerializer, UserSerializer
-from rest_framework.views import APIView
 from authentication.models import User
-from django.contrib.auth import authenticate, login
-from rest_framework.generics import CreateAPIView, ListCreateAPIView
+from django.contrib.auth import authenticate
+from rest_framework.generics import CreateAPIView, GenericAPIView, ListCreateAPIView
+import jwt
+from django.conf import settings
+
+
+class APIAuthUser(GenericAPIView):
+    # access the api endpoint with token authentication
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request):
+        user = request.user
+        serializer = UserSerializer(user)
+        return Response({'user': serializer.data})
 
 
 class UserVieset(ListCreateAPIView):
@@ -25,38 +36,24 @@ class UserVieset(ListCreateAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class LoginViewSet(APIView):
-    serializer_class = UserSerializer
-
-    def post(self, request):
-        serializer = UserSerializer(request.data)
-        email = request.data.get('email', None)
-        password = request.data.get('password', None)
-
-        user = authenticate(username=email, password=password)
-
-        if user:
-            serializer = UserSerializer(user)
-
-            if serializer.is_valid():
-                login(request, user)
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
-            return Response({'message': 'invalid credentilas'}, status=status.HTTP_400_BAD_REQUEST)
-
-
 class LoginViewSet(CreateAPIView):
+    authentication_classes = []
+
     serializer_class = LoginSerializer
-    queryset = User.objects.all()
 
     def create(self, request):
-        email = request.data.get('email', None)
-        password = request.data.get('password', None)
-
+        data = request.data
+        email = data.get('email', '')
+        password = data.get('password', '')
         user = authenticate(username=email, password=password)
 
         if user:
-            serializer = self.serializer_class(data=user)
+            auth_token = jwt.encode(
+                {'username': user.username}, settings.SECRET_KEY, algorithm="HS256")
 
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            serializer = UserSerializer(user)
 
-        return Response({'message': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+            data = {'user': serializer.data, 'token': auth_token}
+            return Response(data, status=status.HTTP_200_OK)
+
+        return Response({'detail': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)

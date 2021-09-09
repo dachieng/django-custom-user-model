@@ -1,4 +1,5 @@
 from datetime import timedelta, timezone
+import datetime
 from django.db import models
 from authentication.helper.models import TrackingModel
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, UserManager
@@ -67,7 +68,6 @@ class User(PermissionsMixin, AbstractBaseUser, TrackingModel):
     )
     first_name = models.CharField(_('first name'), max_length=30, blank=True)
     last_name = models.CharField(_('last name'), max_length=150, blank=True)
-    # change blank=False
     email = models.EmailField(_('email address'), blank=False, unique=True)
     is_staff = models.BooleanField(
         _('staff status'),
@@ -84,29 +84,22 @@ class User(PermissionsMixin, AbstractBaseUser, TrackingModel):
         ),
     )
     date_joined = models.DateTimeField(_('date joined'), default=timezone.now)
-
-    # override the default UserManager()
+    email_verified = models.BooleanField(
+        _('email_verified'), default=False, help_text="Check if the email is verified")
 
     objects = MyUserManager()
 
-    # check if the email field is verified, set to default coz we wanna add ot only when the link is clicked
-
-    email_verified = models.BooleanField(
-        _('email_verified'), default=False, help_text="Check s if the email is verified")
-
     EMAIL_FIELD = 'email'
-    # USERNAME_FIELD = 'username' changes to
     USERNAME_FIELD = 'email'
-    # REQUIRED_FIELDS = ['email'] changes to
     REQUIRED_FIELDS = ['username']
 
-    # generate a token each time a user.token is called
-    # token is not added to the database
 
-    @property
+"""  @property
     def token(self):
-        # username, password, time taken for token to expire (expire after 24 hours since the time it was created),
-        token = jwt.encode({'username': self.username, 'email': self.email, 'exp': timezone.utcnow(
-        ) + timedelta(hours=24)}, settings.SECRET_KEY, algorithm='HS256')
+        token = jwt.encode(
+            {'username': self.username, 'email': self.email,
+                'exp': datetime.utcnow() + timedelta(hours=24)},
+            settings.SECRET_KEY, algorithm='HS256')
 
         return token
+"""
